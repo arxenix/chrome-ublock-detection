@@ -1,4 +1,7 @@
-# chrome-ublock-detection
+# Chrome uBlock detection
+
+[Link](https://arxenix.github.io/chrome-ublock-detection/)
+
 
 This page attempts to detect uBlock origin in **Chrome** by probing for 
 `chrome-extension://cjpalhdlnbpafiamejdnhcphjbkeiagm/web_accessible_resources/noop.html`
