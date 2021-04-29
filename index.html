@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>UBlock detector test</title>
+  </head>
+  <body>
+    <h1>
+      Anti-Adblock
+    </h1>
+    <p>
+      This page attempts to detect uBlock origin in <b>Chrome</b> by probing for
+      <code>
+        chrome-extension://cjpalhdlnbpafiamejdnhcphjbkeiagm/web_accessible_resources/noop.html
+      </code>
+      and observing timing differences in comparison to a fake extension. It
+      should work
+      <i>even if you have the extension disabled for the page</i>.
+    </p>
+    <p>
+      This technique is impossible in firefox because firefox extensions'
+      <code>web_accessible_resources</code> are of the format
+      <code> moz-extension://&lt;extension-UUID&gt;/images/my-image.png</code>
+      where the extension-UUID is randomly generated for every browser instance
+      in order to prevent fingerprinting.
+    </p>
+    <div id="main">probing...</div>
+    <footer style="position: fixed; bottom: 1vh;">
+      by @ankursundara
+    </footer>
+    <script>
+      async function probe(url) {
+        const startTime = window.performance.now();
+        try {
+          await fetch(`${url}?secret=${Math.random()}`);
+        } catch (e) {
+          return window.performance.now() - startTime;
+        }
+      }
+
+      const average = (arr) => arr.reduce((p, c) => p + c, 0) / arr.length;
+      const countArr = (arr, val) =>
+        arr.reduce((a, v) => (v === val ? a + 1 : a), 0);
+
+      async function averageProbe(url, fake_url, count) {
+        const times = [];
+        const fake_times = [];
+        const differentials = [];
+        for (let i = 0; i < count; i++) {
+          const time = await probe(url);
+          times.push(time);
+          const fake_time = await probe(fake_url);
+          fake_times.push(fake_time);
+
+          differentials.push(time > fake_time);
+        }
+
+        const num_greater = countArr(differentials, true);
+        console.log(average(times), average(fake_times));
+        return [average(times), average(fake_times), num_greater];
+      }
+
+      async function main() {
+        const UBLOCK_URL =
+          "chrome-extension://cjpalhdlnbpafiamejdnhcphjbkeiagm/web_accessible_resources/noop.html";
+        const FAKE_URL =
+          "chrome-extension://adabkammndnejioekmmdhgdnlfenpkci/web_accessible_resources/noop.html";
+
+        console.log("probing...");
+        const count = 500;
+        const [avg, fake_avg, num_greater] = await averageProbe(
+          UBLOCK_URL,
+          FAKE_URL,
+          count
+        );
+
+        const output = document.getElementById("main");
+        if (num_greater / count > 0.66) {
+          output.innerText = "uBlock detected.";
+        } else {
+          output.innerText = "you do not have uBlock.";
+        }
+        output.innerText += `\n${num_greater}/${count} requests were slower`;
+        output.innerText += `\navg ublock: ${avg}`;
+        output.innerText += `\navg fake: ${fake_avg}`;
+      }
+      main();
+    </script>
+  </body>
+</html>
